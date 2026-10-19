@@ -1,0 +1,20 @@
+{
+  "name": "api",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.8",
+    "exa-js": "^2.25.0",
+    "hono": "^4.13.13",
+    "openai": "^4.77.0",
+    "playwright": "=1.63.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,30 @@
+# Production stack: the Hono agent API. The OpenTUI client is a terminal app and
+# runs on your machine against the published API port; it is not a container.
+#
+#   cp api/.env.example api/.env   # set OPENAI_API_KEY (and EXA_API_KEY for tools=exa)
+#   docker compose up -d --build
+#   curl localhost:3000/health
+#
+# Behind Caddy/Nginx/Traefik, remove `ports` and put the API on your proxy's
+# network instead.
+services:
+  api:
+    build: ./api
+    image: minimal-agent-api:latest
+    restart: unless-stopped
+    env_file:
+      - api/.env
+    environment:
+      PORT: "3000"
+      # EXA_API_KEY: ${EXA_API_KEY:-}   # uncomment to enable tools="exa"
+    ports:
+      - "127.0.0.1:3000:3000"
+    # Chromium needs more shared memory than Docker's 64MB default.
+    shm_size: "1gb"
+    security_opt:
+      - seccomp=unconfined
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
