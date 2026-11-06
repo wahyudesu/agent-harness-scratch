@@ -1,19 +1,34 @@
 # Production stack: the Hono agent API. The OpenTUI client is a terminal app and
 # runs on your machine against the published API port; it is not a container.
 #
-#   cp api/.env.example api/.env   # set OPENAI_API_KEY (and EXA_API_KEY for tools=exa)
-#   docker compose up -d --build
+# JANGAN `cd agents && docker compose up` — path di file ini relatif ke
+# root repo (tempat Coolify menjalankan `docker compose --project-directory
+# <root> -f agents/docker-compose.yml`). Jadi build context = ./agents/api.
+# Kalau tetap dari folder agents/, pakai: docker compose -f docker-compose.yml
+# TIDAK akan resolve; jalankan dari root:
+#
+#   cp agents/api/.env.example agents/api/.env   # set OPENAI_API_KEY (dan EXA_API_KEY untuk tools=exa)
+#   docker compose -f agents/docker-compose.yml up -d --build
 #   curl localhost:3000/health
+#
+# Di Coolify: Docker Compose File Location = agents/docker-compose.yml,
+# env (OPENAI_API_KEY, EXA_API_KEY) diisi lewat UI Coolify, bukan .env file
+# (file .env ter-gitignore jadi tidak ikut ke artifact).
 #
 # Behind Caddy/Nginx/Traefik, remove `ports` and put the API on your proxy's
 # network instead.
 services:
   api:
-    build: ./api
+    build:
+      context: ./agents/api
+      dockerfile: Dockerfile
     image: minimal-agent-api:latest
     restart: unless-stopped
+    # .env ter-gitignore → tidak ada di artifact Coolify. Buat file ini
+    # optional biar deploy tidak error; di Coolify ambil dari UI env vars.
     env_file:
-      - api/.env
+      - path: ./agents/api/.env
+        required: false
     environment:
       PORT: "3000"
       # EXA_API_KEY: ${EXA_API_KEY:-}   # uncomment to enable tools="exa"
