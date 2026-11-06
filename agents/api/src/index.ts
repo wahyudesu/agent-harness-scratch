@@ -3,7 +3,10 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { streamSSE } from "hono/streaming";
+import { Scalar } from "@scalar/hono-api-reference";
 import { z } from "zod";
+
+import { openApiDocument } from "./openapi.js";
 
 import { openTools, type ToolProvider } from "./harness/4-tools.js";
 import { runHarness, type HarnessOptions, type VerifyResult } from "./harness/6-harness.js";
@@ -183,6 +186,15 @@ app.get("/health", (c) =>
     ok: true,
     modelKey: Boolean(process.env.OPENAI_API_KEY),
     exaKey: Boolean(process.env.EXA_API_KEY),
+  }),
+);
+
+app.route(
+  "/docs",
+  Scalar.serve({
+    document: openApiDocument,
+    pageTitle: "Minimal Agent API",
+    title: "Minimal Agent API",
   }),
 );
 

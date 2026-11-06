@@ -22,6 +22,8 @@ bun run dev            # http://localhost:3000
 | GET    | `/api/tools?provider=chromium\|exa` | Tool names for that backend; also lists available providers |
 | POST   | `/api/run`      | Run the agent harness on a task; JSON by default, SSE with `accept: text/event-stream` |
 | DELETE | `/api/runs/:id` | Abort an in-flight run |
+| GET    | `/docs`         | Scalar API reference UI |
+| GET    | `/docs/openapi.json` | OpenAPI 3.1 document |
 
 ### POST /api/run
 

@@ -5,6 +5,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@scalar/hono-api-reference": "^0.12.18",
     "dotenv": "^18.0.8",
     "exa-js": "^2.25.0",
     "hono": "^4.13.13",
