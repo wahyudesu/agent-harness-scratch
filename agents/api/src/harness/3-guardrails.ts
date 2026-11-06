@@ -1,9 +1,13 @@
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
+// Everything a guardrail may read. A guardrail declares its needs by destructuring
+// only what it uses; the loop always passes the full object.
+export type GuardrailInput = { iterations: number; messages: ChatCompletionMessageParam[] };
+export type GuardrailResult = { ok: true } | { ok: false; reason: string };
+export type GuardrailFn = (input: GuardrailInput) => GuardrailResult;
+
 // Guardrail: hard cap on loop iterations.
-export function maxIterations(
-  limit: number,
-): (input: { iterations: number }) => { ok: true } | { ok: false; reason: string } {
+export function maxIterations(limit: number): GuardrailFn {
   return ({ iterations }) =>
     iterations >= limit
       ? { ok: false, reason: `Guardrail: reached iteration limit (${limit})` }
@@ -11,18 +15,12 @@ export function maxIterations(
 }
 
 // Guardrail: cap on context size (messages).
-export function maxMessages(
-  limit: number,
-): (input: { messages: ChatCompletionMessageParam[] }) => { ok: true } | { ok: false; reason: string } {
+export function maxMessages(limit: number): GuardrailFn {
   return ({ messages }) =>
     messages.length > limit
       ? { ok: false, reason: `Guardrail: context too large (${messages.length} messages)` }
       : { ok: true };
 }
-
-export type GuardrailInput = { iterations: number; messages: ChatCompletionMessageParam[] };
-export type GuardrailResult = { ok: true } | { ok: false; reason: string };
-export type GuardrailFn = (input: GuardrailInput) => GuardrailResult;
 
 export function combineGuardrails(...fns: GuardrailFn[]): GuardrailFn {
   return (input) => {

@@ -4,10 +4,10 @@ import type {
   ChatCompletionMessage,
   ChatCompletionMessageParam,
 } from "openai/resources/chat/completions";
-import { getClient } from "./2-model.js";
-import { trimContext } from "./3-context.js";
-import { defaultGuardrails, type GuardrailFn } from "./4-guardrails.js";
-import type { ToolRegistry } from "./1-tools.js";
+import { getClient } from "./1-model.js";
+import { trimContext } from "./2-context.js";
+import { defaultGuardrails, type GuardrailFn } from "./3-guardrails.js";
+import type { ToolRegistry } from "./4-tools.js";
 
 const MAX_CONTEXT_MESSAGES = 20;
 
@@ -29,7 +29,7 @@ export type LoopIteration = {
 
 export type StopReason = "model" | "guardrail" | "success";
 
-import type { Effort } from "./2-model.js";
+import type { Effort } from "./1-model.js";
 export type { Effort };
 
 export type LoopResult = {

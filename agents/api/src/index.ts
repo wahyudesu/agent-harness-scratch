@@ -5,10 +5,10 @@ import { logger } from "hono/logger";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 
-import { openTools, type ToolProvider } from "./harness/1-tools.js";
+import { openTools, type ToolProvider } from "./harness/4-tools.js";
 import { runHarness, type HarnessOptions, type VerifyResult } from "./harness/6-harness.js";
 import type { LoopResult } from "./harness/5-loop.js";
-import { DEFAULT_MODEL, isKnownModel, MODELS, type Effort } from "./harness/2-model.js";
+import { DEFAULT_MODEL, isKnownModel, MODELS, type Effort } from "./harness/1-model.js";
 
 const app = new Hono();
 app.use(logger());

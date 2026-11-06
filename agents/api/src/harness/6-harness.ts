@@ -1,6 +1,6 @@
-import { openTools, type ToolProvider } from "./1-tools.js";
-import { createContext } from "./3-context.js";
-import { combineGuardrails, maxIterations, type GuardrailFn } from "./4-guardrails.js";
+import { openTools, type ToolProvider } from "./4-tools.js";
+import { createContext } from "./2-context.js";
+import { combineGuardrails, maxIterations, type GuardrailFn } from "./3-guardrails.js";
 import { runLoop, type Effort, type LoopHooks, type LoopResult } from "./5-loop.js";
 
 export type VerifyResult = {

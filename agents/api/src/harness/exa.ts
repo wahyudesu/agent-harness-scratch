@@ -1,6 +1,6 @@
 import Exa from "exa-js";
 
-import type { ToolSession } from "./1-tools.js";
+import type { ToolSession } from "./4-tools.js";
 
 /**
  * Web tooling through Exa's API instead of a local browser. No Chromium means
@@ -17,13 +17,11 @@ export class ExaSession implements ToolSession {
     this.client = new Exa(process.env.EXA_API_KEY ?? "missing");
   }
 
-  /** Drives livecrawl regardless of the page's save date: current needs current. */
-  private static readonly NO_CACHE = 0;
 
   async search(query: string, numResults?: number): Promise<string> {
     const response = await this.client.search(query, {
       type: "auto",
-      contents: { highlights: true, maxAgeHours: ExaSession.NO_CACHE },
+      contents: { highlights: true },
       ...(numResults ? { numResults } : {}),
     });
 
@@ -33,6 +31,7 @@ export class ExaSession implements ToolSession {
       published: r.publishedDate ?? undefined,
       highlights: r.highlights ?? [],
     }));
+
     return JSON.stringify({ results }, null, 2);
   }
 
@@ -40,14 +39,15 @@ export class ExaSession implements ToolSession {
     // The contents endpoint takes extraction fields at the top level, unlike
     // /search where they nest under `contents`.
     const response = await this.client.getContents(urls, {
-      highlights: true,
-      maxAgeHours: ExaSession.NO_CACHE,
+      highlights: true
     });
+
     const results = response.results.map((r) => ({
       url: r.url,
       title: r.title ?? "(no title)",
       highlights: r.highlights ?? [],
     }));
+
     return JSON.stringify({ results }, null, 2);
   }
 

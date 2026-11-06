@@ -1,7 +1,7 @@
 # minimal-agent API
 
 Hono API wrapper around the agent harness from `basically-ai-harness/agent/`
-(`1-tools.ts`, `2-model.ts`, `3-context.ts`, `5-loop.ts`, `browser.ts` — vendored
+(`1-model.ts`, `2-context.ts`, `5-loop.ts`, `browser.ts` — vendored
 into `src/harness/`, plus `exa.ts` for the Exa API backend). Intended to be consumed by the OpenTUI client in
 `../opentui/`.
 
