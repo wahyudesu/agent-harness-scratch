@@ -31,7 +31,10 @@ services:
         required: false
     environment:
       PORT: "3001"
-      # EXA_API_KEY: ${EXA_API_KEY:-}   # uncomment to enable tools="exa"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      EXA_API_KEY: ${EXA_API_KEY:-}
+      BROWSER_HEADLESS: ${BROWSER_HEADLESS:-"true"}
     ports:
       - "127.0.0.1:3001:3001"
     # Chromium needs more shared memory than Docker's 64MB default.
