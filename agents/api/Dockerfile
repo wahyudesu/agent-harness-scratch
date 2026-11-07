@@ -4,7 +4,7 @@
 FROM mcr.microsoft.com/playwright:v1.63.0-noble
 
 ENV NODE_ENV=production \
-    PORT=3000 \
+    PORT=3001 \
     BUN_INSTALL=/usr/local/bun \
     PATH=/usr/local/bun/bin:$PATH
 
@@ -26,7 +26,7 @@ COPY tsconfig.json ./
 COPY src ./src
 
 USER agent
-EXPOSE 3000
+EXPOSE 3001
 
 # Playwright browsers live in the base image; point Bun's runtime at them and
 # keep Chromium from trying to sandbox inside the container.
@@ -35,6 +35,6 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     CHROMIUM_FLAGS="--no-sandbox"
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD ["bun", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+  CMD ["bun", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 
 CMD ["bun", "run", "src/index.ts"]

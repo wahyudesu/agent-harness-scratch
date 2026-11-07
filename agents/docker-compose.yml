@@ -20,20 +20,20 @@
 services:
   api:
     build:
-      context: ./agents/api
+      context: ./api
       dockerfile: Dockerfile
     image: minimal-agent-api:latest
     restart: unless-stopped
     # .env ter-gitignore → tidak ada di artifact Coolify. Buat file ini
     # optional biar deploy tidak error; di Coolify ambil dari UI env vars.
     env_file:
-      - path: ./agents/api/.env
+      - path: ./api/.env
         required: false
     environment:
-      PORT: "3000"
+      PORT: "3001"
       # EXA_API_KEY: ${EXA_API_KEY:-}   # uncomment to enable tools="exa"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3001"
     # Chromium needs more shared memory than Docker's 64MB default.
     shm_size: "1gb"
     security_opt:
