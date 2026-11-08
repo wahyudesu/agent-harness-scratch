@@ -5,14 +5,13 @@ FROM mcr.microsoft.com/playwright:v1.63.0-noble
 
 ENV NODE_ENV=production \
     PORT=3001 \
-    BUN_INSTALL=/usr/local/bun \
-    PATH=/usr/local/bun/bin:$PATH
+    PATH=/usr/local/bin:$PATH
 
-# The Playwright image has curl but not unzip, which bun.sh/install requires.
-RUN apt-get update \
- && apt-get install -y --no-install-recommends unzip \
- && rm -rf /var/lib/apt/lists/* \
- && curl -fsSL https://bun.sh/install | bash \
+# The Playwright image ships npm; install bun from the npm registry (@oven/
+# bun-linux-x64 is the official binary package). bun.sh/install redirects to
+# GitHub releases, which 504s intermittently on CI/build networks.
+RUN npm install -g --no-audit --no-fund @oven/bun-linux-x64@1.4.2 \
+ && ln -sf "$(npm root -g)/@oven/bun-linux-x64/bin/bun" /usr/local/bin/bun \
  && groupadd --gid 10001 agent \
  && useradd --create-home --uid 10001 --gid 10001 agent
 
