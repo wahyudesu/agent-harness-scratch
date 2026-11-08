@@ -10,26 +10,21 @@ export const getClient = (): OpenAI =>
     apiKey: process.env.OPENAI_API_KEY ?? "missing",
   });
 
-export type Effort = "low" | "medium" | "high";
+export const EFFORTS = ["low", "medium", "high"] as const;
+export type Effort = (typeof EFFORTS)[number];
 
 /** One entry in the public model list served by GET /api/models. */
 export type ModelInfo = {
   id: string;
   name: string;
   provider: string;
-  context: number;
-  efforts: Effort[];
+  efforts: readonly Effort[];
 };
 
-/**
- * Curated Groq catalogue. `context` is the provider's window in tokens and
- * `efforts` lists the reasoning levels the model accepts — clients use both to
- * build pickers without hardcoding them.
- */
 export const MODELS: ModelInfo[] = [
-  { id: "openai/gpt-oss-20b", name: "gpt-oss-20b", provider: "Groq", context: 131072, efforts: ["low", "medium", "high"] },
-  { id: "openai/gpt-oss-120b", name: "gpt-oss-120b", provider: "Groq", context: 131072, efforts: ["low", "medium", "high"] },
-  { id: "llama-3.3-70b-versatile", name: "llama-3.3-70b", provider: "Groq", context: 131072, efforts: [] },
+  { id: "openai/gpt-oss-20b", name: "gpt-oss-20b", provider: "Groq", efforts: EFFORTS },
+  { id: "openai/gpt-oss-120b", name: "gpt-oss-120b", provider: "Groq", efforts: EFFORTS },
+  { id: "llama-3.3-70b-versatile", name: "llama-3.3-70b", provider: "Groq", efforts: [] },
 ];
 
 export const DEFAULT_MODEL = MODELS[0]!.id;

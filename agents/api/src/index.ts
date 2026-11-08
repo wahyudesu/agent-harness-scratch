@@ -11,11 +11,16 @@ import { openApiDocument } from "./openapi.js";
 import { openTools, type ToolProvider } from "./harness/4-tools.js";
 import { runHarness, type HarnessOptions, type VerifyResult } from "./harness/6-harness.js";
 import type { LoopResult } from "./harness/5-loop.js";
+import { rateLimiter } from "./rate-limit.js";
 import { DEFAULT_MODEL, isKnownModel, MODELS, type Effort } from "./harness/1-model.js";
 
 const app = new Hono();
 app.use(logger());
 app.use("/api/*", cors());
+app.use("/api/run", rateLimiter({ windowMs: 600_000, max: 5 }));
+app.use("/api/*", (c, next) =>
+  new URL(c.req.url).pathname === "/api/run" ? next() : rateLimiter({ windowMs: 600_000, max: 30 })(c, next),
+);
 
 const RunRequest = z.object({
   task: z.string().min(1, "task is required"),
@@ -104,7 +109,7 @@ app.post("/api/run", async (c) => {
   if (!isKnownModel(body.model)) {
     return c.json({ error: `unknown model "${body.model}" — see GET /api/models` }, 400);
   }
-  const supported: Effort[] = MODELS.find((m) => m.id === body.model)?.efforts ?? [];
+  const supported: readonly Effort[] = MODELS.find((m) => m.id === body.model)?.efforts ?? [];
   if (body.effort && !supported.includes(body.effort)) {
     return c.json(
       { error: `model "${body.model}" does not support effort "${body.effort}"` },

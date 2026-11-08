@@ -1,8 +1,6 @@
 # minimal browser agent harness 
 
-Harness agent kecil yang gampang dibaca: satu model yang OpenAI-compatible,
-loop LLM dengan guardrail, dan API Hono di depannya. Tool-nya diambil dari salah
-satu dari dua backend — Chromium lokal atau API web Exa — dan TUI di
+minimal agent utk demonstrasiin cara kerja agent, sama seperti claude, openai punya harness via codex, tapi kali ini kita bikin sratch tanpa framework agent. tools utama yg kita pakai chromium utk kontrol browser dan TUI di
 `minimal-agent/opentui` adalah konsumen referensinya.
 
 ```
@@ -33,9 +31,7 @@ https://term.ink buat alternative opentui nya
 
 ## 1. Model
 
-Konfigurasi di sini pakai prinsip OOP: tiap konfigurasi ditaruh di class-nya
-sendiri. Begitu juga komponen harness lainnya nanti — tools, guardrails, dan
-seterusnya.
+Konfigurasi di sini pakai prinsip OOP: tiap konfigurasi ditaruh di class-nya sendiri. Begitu juga komponen harness lainnya nanti — tools, guardrails, dan seterusnya.
 
 > The fastest way to call or interface with an AI model programmatically is by using the official lightweight SDK/library provided directly by your LLM provider (such as the official openai, anthropic, or google-genai SDKs) rather than heavy wrapper or orchestration frameworks.
 
@@ -49,22 +45,18 @@ export const getClient = (): OpenAI =>
   });
 ```
 
-Katalog model juga tinggal di sini, karena API yang pegang datanya dan client
-tinggal fetch — bukan hardcode id model:
+Katalog model juga didefine di sini, karena API yang pegang datanya dan client tinggal fetch — bukan hardcode id model:
 
 ```typescript
-export type Effort = "low" | "medium" | "high";
-
 export type ModelInfo = {
   id: string;
   name: string;
   provider: string;
-  context: number;
   efforts: Effort[];
 };
 
 export const MODELS: ModelInfo[] = [
-  { id: "openai/gpt-oss-20b", name: "gpt-oss-20b", provider: "Groq", context: 131072, efforts: ["low", "medium", "high"] },
+  { id: "openai/gpt-oss-20b", name: "gpt-oss-20b", provider: "Groq", efforts: ["low", "medium", "high"] },
 ];
 ```
 
@@ -74,129 +66,68 @@ untuknya tidak usah menyertakan field tersebut.
 
 ## 2. Tools
 
-Satu tool itu pasangan: skema JSON plus executor async yang mengembalikan
-string. Bentuk registry-nya sama untuk kedua backend, dipilih per run lewat
-`tools`:
+Tool itu cara agent "bertindak". Satu tool = nama + deskripsi (buat model paham kapan pakainya) + fungsi yang benar-benar menjalankan aksinya.
 
-| `tools` | Tools | Butuh |
+Ada dua set tool yang bisa dipilih:
+
+| Pilihan | Tools | Cocok untuk |
 | --- | --- | --- |
-| `chromium` (default) | `browser_search`, `browser_navigate`, `browser_url`, `browser_get_text`, `browser_click`, `browser_fill` | cuma image-nya |
-| `exa` | `web_search`, `web_fetch` | `EXA_API_KEY` |
+| `chromium` (default) | buka URL, baca halaman, klik, isi form | alur yang butuh interaksi UI (login, klik tombol) |
+| `exa` | cari web, ambil isi halaman | riset — lebih murah, tidak perlu browser |
 
-`openTools()` mengembalikan sesi (buat cleanup) plus registry yang dipakai loop:
+Contoh satu tool, `browser_navigate`:
 
 ```typescript
 // api/src/harness/4-tools.ts
-export async function openTools(provider: ToolProvider): Promise<{
-  session: ToolSession;
-  registry: ToolRegistry;
-}> {
-  if (provider === "exa") {
-    const session = new ExaSession();
-    return { session, registry: toRegistry(exaTools(session)) };
-  }
-
-  const session = new BrowserSession(process.env.BROWSER_HEADLESS !== "false");
-  await session.open();
-  return { session, registry: toRegistry(chromiumTools(session)) };
-}
-```
-
-Executor-nya closure ke sesi milik run itu, karena sesi yang pegang state
-(halaman yang sedang terbuka, atau client API):
-
-```typescript
-// api/src/harness/4-tools.ts (backend chromium)
 {
+  // Ini yang dilihat model: nama, deskripsi, parameter
   definition: fn(
     "browser_navigate",
     "Navigate the browser to a URL.",
     { url: { type: "string" } },
     ["url"],
   ),
+  // Ini yang benar-benar jalan saat model memanggilnya
   execute: async ({ url }) => session.navigate(url as string),
 }
 ```
 
-Sesi Chromium cuma wrapper tipis Playwright:
+Di baliknya, `browser_navigate` cuma membungkus Playwright (library kontrol browser):
 
 ```typescript
 // api/src/harness/browser.ts
-async open(): Promise<void> {
-  this.browser = await chromium.launch({ headless: this.headless });
-  this.page = await (await this.browser.newContext()).newPage();
-}
-
 async navigate(url: string, timeoutMs = 15000): Promise<string> {
   await this.page!.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
   return `Navigated to ${url}`;
 }
 ```
 
-Backend Exa menukar browser dengan dua panggilan API. Ikuti panduan request dari
-Exa: maksudnya taruh di query, `highlights: true` apa adanya, jangan tambah
-field lain kalau pemanggil tidak minta. `maxAgeHours: 0` memaksa crawl langsung
-supaya jawaban tidak disusun dari cache lama.
-
-```typescript
-// api/src/harness/exa.ts
-async search(query: string, numResults?: number): Promise<string> {
-  const response = await this.client.search(query, {
-    type: "auto",
-    contents: { highlights: true, maxAgeHours: 0 },
-    ...(numResults ? { numResults } : {}),
-  });
-  // → JSON: { results: [{ title, url, published, highlights }] }
-}
-
-async fetch(urls: string[]): Promise<string> {
-  // /contents menerima field ekstraksi di level atas, beda dengan /search.
-  const response = await this.client.getContents(urls, { highlights: true, maxAgeHours: 0 });
-}
-```
-
-Memilih backend itu bukan cuma soal biaya: `chromium` bisa login, klik, dan
-membaca halaman di balik interaksi; `exa` lebih murah, tidak perlu memori
-browser, dan tidak kena blokir anti-bot. Pakai `chromium` untuk alur UI, `exa`
-untuk riset.
+Backend `exa` sama principalnya, hanya browser-nya diganti panggilan API ke Exa — agent tidak tahu bedanya, dia cuma memanggil nama tool.
 
 ## 3. Context
 
-System prompt menyebut setiap tool yang tersedia. Tanpa itu, model mengarang
-nama tool (misalnya `browser_search` untuk backend exa, atau nama yang tidak ada
-sama sekali) dan provider menolak request dengan 400 sebelum loop sempat
-bereaksi.
+Context = semua yang model "lihat" saat menjawab: instruksi, task, dan hasil-hasil tool.
+
+Dua hal yang diurus di sini:
+
+**1. Kasih tahu model tool apa saja yang tersedia.** Kalau tidak, model bisa mengarang nama tool dan request langsung ditolak provider. Jadi daftar tool diinject ke system prompt:
 
 ```typescript
 // api/src/harness/2-context.ts
-export function createContext(
-  task: string,
-  systemPrompt?: string,
-  toolNames?: string[],
-): ChatCompletionMessageParam[] {
-  const availableTools = toolNames?.length
-    ? `\n\nYou have EXACTLY these tools — never call any tool not in this list. If you need a capability none of them provide, say so in your answer instead of inventing a tool:\n${toolNames.map((n) => `- ${n}`).join("\n")}`
-    : "";
-  return [
-    { role: "system", content: (systemPrompt ?? SYSTEM_PROMPT) + availableTools },
-    { role: "user", content: task },
-  ];
-}
+const availableTools = toolNames?.length
+  ? `You have EXACTLY these tools — never call any tool not in this list:
+${toolNames.map((n) => `- ${n}`).join("\n")}`
+  : "";
 ```
 
-Pemangkasan mempertahankan system prompt dan task awal, lalu membuang pesan
-tool paling lama duluan:
+**2. Pangkas context yang sudah panjang.** Semakin lama agent bekerja, semakin banyak pesan menumpuk dan makin mahal panjangnya. Solusinya sederhana: simpan instruksi + task awal, buang percakapan tool paling lama duluan:
 
 ```typescript
-export function trimContext(
-  messages: ChatCompletionMessageParam[],
-  maxMessages: number,
-): ChatCompletionMessageParam[] {
-  if (messages.length <= maxMessages) return messages;
-  const [system, user] = messages;
-  const rest = messages.slice(2);
-  return [system, user, ...rest.slice(rest.length - (maxMessages - 2))];
-}
+// api/src/harness/2-context.ts
+if (messages.length <= maxMessages) return messages;
+const [system, user] = messages;              // instruksi + task selalu dipertahankan
+const rest = messages.slice(2);
+return [system, user, ...rest.slice(rest.length - (maxMessages - 2))]; // sisanya: ambil yang terbaru
 ```
 
 ## 4. Guardrails
@@ -419,19 +350,15 @@ didokumentasikan tiap endpoint Exa dan jebakan bentuk request-nya.
 ## Cara menjalankan
 
 ```bash
-cd agent/minimal-agent/api
+cd agent/api
 cp .env.example .env          # isi OPENAI_API_KEY (Groq)
-bun install && bun run dev    # http://localhost:3000
+bun i && bun run dev    # http://localhost:3000
 
 cd ../opentui
-bun install && bun run dev    # API_URL default-nya http://localhost:3000
+bun i && bun run dev    # API_URL default-nya http://localhost:3000
 ```
 
-Produksi: `docker compose up -d --build` dari `agent/minimal-agent/` — lihat
-[`minimal-agent/README.md`](../minimal-agent/README.md) untuk variabel,
-setup reverse-proxy, dan publish image.
+prod
 
-Kalau mau deploy agent browser sebagai service jangka panjang (job terjadwal,
-sesi login tersimpan, kirim ke Slack/Discord), ikuti
-https://raw.githubusercontent.com/omnara-ai/omnara/main/examples/browser-agent/SKILL.md —
-di situ loop yang sama dibungkus dengan profil dan secret Omnara.
+`docker compose up -d --build` dari `agent/minimal-agent/` — 
+

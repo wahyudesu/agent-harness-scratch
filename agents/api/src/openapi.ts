@@ -31,7 +31,6 @@ export const openApiDocument = {
                       id: "openai/gpt-oss-20b",
                       name: "gpt-oss-20b",
                       provider: "Groq",
-                      context: 131072,
                       efforts: ["low", "medium", "high"],
                     },
                   ],
@@ -208,12 +207,11 @@ export const openApiDocument = {
     schemas: {
       ModelInfo: {
         type: "object",
-        required: ["id", "name", "provider", "context", "efforts"],
+        required: ["id", "name", "provider", "efforts"],
         properties: {
           id: { type: "string", example: "openai/gpt-oss-20b" },
           name: { type: "string", example: "gpt-oss-20b" },
           provider: { type: "string", example: "Groq" },
-          context: { type: "integer", example: 131072, description: "Provider context window in tokens." },
           efforts: {
             type: "array",
             items: { type: "string", enum: ["low", "medium", "high"] },
